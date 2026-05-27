@@ -50,5 +50,48 @@ namespace TaskManagementApi.Controllers
             var hash = sha256.ComputeHash(bytes);
             return Convert.ToBase64String(hash);
         }
+        
+        [HttpPost("login")]
+public async Task<IActionResult> Login(RegisterDto dto)
+        {
+    var user = await _context.Users
+        .FirstOrDefaultAsync(u => u.Username == dto.Username);
+
+    if (user == null || user.PasswordHash != HashPassword(dto.Password))
+    {
+        return Unauthorized("Неверный логин или пароль");
+    }
+
+    var token = GenerateJwtToken(user);
+
+    return Ok(new { token });
+       }
+       private string GenerateJwtToken(User user)
+       {
+    var jwtSettings = HttpContext.RequestServices
+        .GetRequiredService<IConfiguration>()
+        .GetSection("Jwt");
+
+    var key = new SymmetricSecurityKey(
+        Encoding.UTF8.GetBytes(jwtSettings["Key"]));
+
+    var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+    var claims = new[]
+    {
+        new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+        new Claim(ClaimTypes.Name, user.Username)
+    };
+
+    var token = new JwtSecurityToken(
+        issuer: jwtSettings["Issuer"],
+        audience: jwtSettings["Audience"],
+        claims: claims,
+        expires: DateTime.Now.AddMinutes(
+            int.Parse(jwtSettings["ExpireMinutes"])),
+        signingCredentials: creds);
+
+    return new JwtSecurityTokenHandler().WriteToken(token);
+       } 
     }
 }
