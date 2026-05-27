@@ -1,3 +1,7 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+
 using Microsoft.EntityFrameworkCore;
 using TaskManagementApi.Data;
 
